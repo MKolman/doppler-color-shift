@@ -1,17 +1,20 @@
 <html>
 <head></head>
-<body>
+<body style="width: 1000px; text-align: center; margin: auto;">
+	<h1> Image at <span id="vspan">0</span>% the speed of light </h1>
 	<input type='file' name='img' size='65' id='uploadimage' onchange="draw()" />
+	<div> Image was resized to make the experience smoother. <a href="#" onclick="showOriginal();"> Click here </a> to show the original size. </div>
 	<br>
-	<canvas width="500", height="500" id="img">
-		
-	</canvas>
+	<canvas width="500", height="500" id="img"></canvas>
 	<br>
 	<input type="range" id="velocity" name="velocity" min="-50" max="50" style="width: 100%;">
 	<script type="text/javascript">
 		const img = new Image(),
 			canvas = document.getElementById('img'),
+			label = document.getElementById('vspan'),
+	        slider = document.getElementById("velocity"),
 			url = window.URL || window.webkitURL;
+		let memo = {};
 		img.src = "rainbow.png";
 		img.onload = function(){
 			let w = img.width, h = img.height;
@@ -23,6 +26,17 @@
 				w *= 1000/h;
 				h = 1000;
 			}
+			showOriginal(w, h);
+		}
+		function showOriginal(w, h) {
+			if (!w) {
+				w = img.width;
+				h = img.height;
+			}
+			memo = {};
+			slider.value = 0;
+        	label.innerHTML = 0;
+
 			canvas.width = w;
 			canvas.height = h;
 			let ctx = canvas.getContext('2d');
@@ -38,18 +52,21 @@
 		async function run() {
 			await init();
 	        const ctx = canvas.getContext('2d');
-	        const slider = document.getElementById("velocity");
 	        let startTime = new Date();
 	        function doit() {
-            	let d = new Date();
+            	let v = slider.value;
+	        	label.innerHTML = v;
+            	if (memo[v]) {
+            		ctx.putImageData(memo[v], 0, 0);
+            		return;
+            	}
             	ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-            	color_shift_canvas(ctx, slider.value/100);
-            	console.log("v =", slider.value);
-            	// console.log((new Date()) - d);
+            	color_shift_canvas(ctx, v/100);
+            	memo[v] = ctx.getImageData(0, 0, canvas.width, canvas.height);
 	        }
             document.getElementById("velocity").addEventListener("input", () => {
             	let now = new Date();
-            	if (now - startTime < 500) return;
+            	if (!memo[slider.value] && now - startTime < 500) return;
             	startTime = now;
             	doit()
             });
