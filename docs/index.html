@@ -1,30 +1,39 @@
 <html>
 <head></head>
 <body style="width: 1000px; text-align: center; margin: auto;">
-	<h1> Image at <span id="vspan">0</span>% the speed of light </h1>
+	<h1> Image at <span id="vspan">0</span>% the speed of light* </h1>
 	<input type='file' name='img' size='65' id='uploadimage' onchange="draw()" />
-	<div> Image was resized to make the experience smoother. <a href="#" onclick="showOriginal();"> Click here </a> to show the original size. </div>
+	<div id="notice" style="display: none;"> Image was resized to make the experience smoother. <a href="#" onclick="showOriginal();"> Click here </a> to show the original size. </div>
 	<br>
 	<canvas width="500", height="500" id="img"></canvas>
 	<br>
 	<input type="range" id="velocity" name="velocity" min="-50" max="50" style="width: 100%;">
+	<br>
+	<br>
+	<div>
+		Made in Rust and compiled into web assembly. <a href="https://github.com/MKolman/doppler-color-shift">Source on github.</a>
+	</div>
 	<script type="text/javascript">
 		const img = new Image(),
 			canvas = document.getElementById('img'),
 			label = document.getElementById('vspan'),
 	        slider = document.getElementById("velocity"),
+	        notice = document.getElementById("notice"),
 			url = window.URL || window.webkitURL;
 		let memo = {};
 		img.src = "rainbow.png";
 		img.onload = function(){
+			notice.style.display = "none";
 			let w = img.width, h = img.height;
 			if (w > 1000) {
 				h *= 1000/w;
 				w = 1000;
+				notice.style.display = "block";
 			}
 			if (h > 1000) {
 				w *= 1000/h;
 				h = 1000;
+				notice.style.display = "block";
 			}
 			showOriginal(w, h);
 		}
@@ -32,6 +41,7 @@
 			if (!w) {
 				w = img.width;
 				h = img.height;
+				notice.style.display = "none";
 			}
 			memo = {};
 			slider.value = 0;
