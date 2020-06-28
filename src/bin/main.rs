@@ -11,7 +11,7 @@ fn main() {
     	// let mut img = image::open("rainbow.png").unwrap().into_rgba();
 		let velocity = (i-n/2) as f64 / n as f64/5.;
 		println!("Start {}", i);
-		color_shift(&mut img, velocity);
+		img = color_shift(img, velocity);
 		println!("Saving {}", i);
 		img.save(format!("result_{}.jpg", i)).unwrap();
     }

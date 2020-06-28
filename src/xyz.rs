@@ -1,23 +1,23 @@
-use ndarray::arr2;
-use ndarray_linalg::norm::Norm;
+use nalgebra::{Vector3, Matrix3};
 
-pub type Color = ndarray::Array1<f64>;
+pub type Color = Vector3<f64>;
+pub type Transformer = Matrix3<f64>;
 
 /// A conversion matrix from linear sRGB color space into an XYZ space.
-pub fn get_lrgb2xyz() -> ndarray::Array2<f64> {
-	return arr2(&[
-		[0.4123865632529917,   0.35759149092062537, 0.18045049120356368],
-		[0.21263682167732384,  0.7151829818412507,  0.07218019648142547],
-		[0.019330620152483987, 0.11919716364020845, 0.9503725870054354]
-	]);
+pub fn get_lrgb2xyz() -> Transformer {
+	return Transformer::new(
+		0.4123865632529917,   0.35759149092062537, 0.18045049120356368,
+		0.21263682167732384,  0.7151829818412507,  0.07218019648142547,
+		0.019330620152483987, 0.11919716364020845, 0.9503725870054354
+	);
 }
 /// A conversion matrix from XYZ color space to a linear sRGB space
-pub fn get_xyz2lrgb() -> ndarray::Array2<f64> {
-	return arr2(&[
-		[ 3.2410032329763587,   -1.5373989694887855,  -0.4986158819963629],
-		[-0.9692242522025166,    1.875929983695176,    0.041554226340084724],
-		[ 0.055639419851975444, -0.20401120612390997,  1.0571489771875335]
-	]);
+pub fn get_xyz2lrgb() -> Transformer {
+	return Transformer::new(
+		 3.2410032329763587,   -1.5373989694887855,  -0.4986158819963629,
+		-0.9692242522025166,    1.875929983695176,    0.041554226340084724,
+		 0.055639419851975444, -0.20401120612390997,  1.0571489771875335
+	);
 }
 
 /// Returns a value of an asymmetrical Gaussian function
@@ -46,7 +46,7 @@ pub fn get_xyz(lam: f64) -> Color{
 		vec![[0.821, 5688., 469., 405.], [0.286, 5309., 163., 311.]],
 		vec![[1.217, 4370., 118., 360.], [0.681, 4590., 260., 138.]],
 	];
-	let mut result: ndarray::Array1<f64> = array![0., 0., 0.];
+	let mut result: Color = Color::zeros();
 	for x in 0..3 {
 		for &[a, m, s1, s2] in &configs[x] {
 			result[x] += gauss(lam*10., a/1.068, m, s1, s2);
@@ -57,7 +57,7 @@ pub fn get_xyz(lam: f64) -> Color{
 
 /// Performs an sRGB gamma expansion i.e. a number in [0, 255]
 /// range, into a value in [0, 1] range.
-pub fn linear_from_srgb(&value: &f64) -> f64 {
+pub fn linear_from_srgb(value: f64) -> f64 {
 	if value <= 10.31475 {
 		return value / 3294.6;
 	} else {
@@ -66,7 +66,7 @@ pub fn linear_from_srgb(&value: &f64) -> f64 {
 }
 /// Performs an sRGB gamma compression i.e. a number in [0, 1]
 /// range, into a value in [0, 255] range.
-pub fn srgb_from_linear(&value: &f64) -> f64 {
+pub fn srgb_from_linear(value: f64) -> f64 {
 	if value * 3294.6 < 10. {
 		return value * 3294.6;
 	} else {
@@ -77,12 +77,12 @@ pub fn srgb_from_linear(&value: &f64) -> f64 {
 /// Given an sRGB triplet of numbers in range [0, 255] it returns an
 /// equivalent XYZ triplet in the range [0, 1]
 pub fn xyz_from_srgb(srgb: &Color) -> Color {
-	return get_lrgb2xyz().dot(&srgb.map(linear_from_srgb));
+	return get_lrgb2xyz() * srgb.map(linear_from_srgb);
 }
 /// Given an XYZ triplet of numbers in range [0, 1] it returns an
 /// equivalent XYZ triplet in the range [0, 255].
 pub fn srgb_from_xyz(xyz: &Color) -> Color {
-	return get_xyz2lrgb().dot(xyz).map(srgb_from_linear);
+	return (get_xyz2lrgb() * xyz).map(srgb_from_linear);
 }
 
 #[test]
@@ -134,24 +134,27 @@ fn test_get_xyz() {
 fn test_linear_srgb() {
 	let mut got: f64;
 	for &x in &vec![0., 1., 50., 101., 123., 150., 255.] {
-		got = linear_from_srgb(&srgb_from_linear(&x));
+		got = linear_from_srgb(srgb_from_linear(x));
 		assert!((got-x).abs() < 1e-10, "want {}, got {}", x, got);
-		got = srgb_from_linear(&linear_from_srgb(&x));
+		got = srgb_from_linear(linear_from_srgb(x));
 		assert!((got-x).abs() < 1e-10, "want {}, got {}", x, got);
 	}
+	let c = Color::new(0., 1., 255.);
+	let got = c.map(srgb_from_linear).map(linear_from_srgb);
+	assert!((got - c).norm() < 1e-10, "want {}, got {}", c, got);
 }
 #[test]
 fn test_srgb_xyz() {
 	let mut got: Color;
 	let mut want: Color;
-	let rgb = array![1., 150., 255.];
-	let xyz = array![1., 0.3, 0.01];
+	let rgb = Color::new(1., 150., 255.);
+	let xyz = Color::new(1., 0.3, 0.01);
 
-	want = array![0.28962, 0.29035, 0.98666];
+	want = Color::new(0.28962, 0.29035, 0.98666);
 	got = xyz_from_srgb(&rgb);
 	assert!((&want - &got).norm() < 1e-4, "want {}, got {}, diff: {}", want, got, (&want-&got).norm());
 
-	want = array![397.572, -1337.705, 15.576];
+	want = Color::new(397.572, -1337.705, 15.576);
 	got = srgb_from_xyz(&xyz);
 	assert!((&want - &got).norm() < 1e-3, "want {}, got {}, diff: {}", want, got, (&want-&got).norm());
 
