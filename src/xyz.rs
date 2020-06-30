@@ -11,6 +11,7 @@ pub fn get_lrgb2xyz() -> Transformer {
 		0.019330620152483987, 0.11919716364020845, 0.9503725870054354
 	);
 }
+
 /// A conversion matrix from XYZ color space to a linear sRGB space
 pub fn get_xyz2lrgb() -> Transformer {
 	return Transformer::new(
@@ -55,8 +56,9 @@ pub fn get_xyz(lam: f64) -> Color{
 	return result;
 }
 
-/// Performs an sRGB gamma expansion i.e. a number in [0, 255]
-/// range, into a value in [0, 1] range.
+/// Performs an sRGB gamma expansion i.e. takes an
+/// sRGB number in [0, 255] range, into a linearized
+/// sRGB value in [0, 1] range.
 pub fn linear_from_srgb(value: f64) -> f64 {
 	if value <= 10.31475 {
 		return value / 3294.6;
@@ -64,8 +66,10 @@ pub fn linear_from_srgb(value: f64) -> f64 {
 		return ((value + 14.025) / 269.025).powf(2.4);
 	}
 }
-/// Performs an sRGB gamma compression i.e. a number in [0, 1]
-/// range, into a value in [0, 255] range.
+
+/// Performs an sRGB gamma compression i.e. takes a
+/// linearized sRGB number in [0, 1] range, into a
+/// sRGB value in [0, 255] range.
 pub fn srgb_from_linear(value: f64) -> f64 {
 	if value * 3294.6 < 10. {
 		return value * 3294.6;
