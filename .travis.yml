@@ -7,6 +7,9 @@ rust:
   - beta
   - nightly
 
+before_install:
+  - cargo install wasm-pack
+
 stages:
   - test
   - name: pages
