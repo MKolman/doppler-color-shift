@@ -7,37 +7,21 @@ rust:
   - beta
   - nightly
 
-before_install:
+install:
   - cargo install wasm-pack
-
-stages:
-  - test
-  - name: pages
-    if: branch = master
 
 jobs:
   allow_failures:
     - rust: nightly
-  include:
-    - stage: test
-      name: "Build native"
-      script: cargo build --verbose --all
-    - stage: test
-      name: "Build wasm"
-      script: wasm-pack build --target web --out-dir example/pkg
-    - stage: test
-      name: Test
-      script: cargo test --verbose --all
-    - stage: pages
-      name: "Deploy github pages"
-      script:
-        - wasm-pack build --target web --release --out-dir example/pkg
-      deploy:
-        provider: pages
-        skip_cleanup: true
-        github_token: $GITHUB_TOKEN
-        local_dir: example
-        keep_history: true
-        on:
-          branch: master
-          rust: stable
+
+script:
+  - wasm-pack build --target web --release --out-dir example/pkg && rm example/pkg/.gitignore
+
+deploy:
+  provider: pages
+  skip_cleanup: true
+  github_token: $GITHUB_TOKEN
+  local_dir: example
+  keep_history: true
+  on:
+    branch: master
